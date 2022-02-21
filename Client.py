@@ -1,6 +1,6 @@
 import socket
 
-ClientSocket = socket.socket()
+ClientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 WebServerHost = '127.0.0.1'
 WebServerPort = 65432
 

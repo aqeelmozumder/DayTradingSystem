@@ -3,6 +3,7 @@ import transactions
 import commandsHelpers
 import pymongo
 import time
+import db
 
 def Add(data, transCount):
     #user, amount
@@ -136,24 +137,15 @@ def SetBuyAmount(data, transCount):
     if commandsHelpers.userBalance(username) >= amount:
         if config.USER_COLLECTION.count_documents({ "username": username, "setBuy.stockSymbol": stockSymbol }) > 0:
             #user has previous setBuy, set that setBuy amount to new value
-            config.USER_COLLECTION.update_one(
-                { "username": username, "setBuy.stockSymbol": stockSymbol },
-                { "$set": { "setBuy.$.amount": amount } },
-                upsert=True
-            )
+            db.updateSetBuy(username, stockSymbol, amount)
         else:
             #user does not have a setBuy for that stock
-            config.USER_COLLECTION.update_one(
-                { "username": username },
-                { "$addToSet": { "setBuy": { "stockSymbol": stockSymbol, "amount": amount } } },
-            )
+            db.newSetBuy(username, stockSymbol, amount)
+
         #decrement user's balance by amount   
         commandsHelpers.addFunds(username, -amount)
         #increment holdBalance by amount
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$inc": { "holdBalance": amount } }
-        )
+        db.incrementHoldBalance(username, amount)
     else:
         #TODO error for not enough funds
         return
@@ -168,21 +160,17 @@ def CancelSetBuy(data, transCount):
     username = data[1]
     stockSymbol = data[2]
     transactions.insertUserAndStockSymbolTransaction(data, transCount)
-    if config.USER_COLLECTION.count_documents({ "username": username, "setBuy.stockSymbol": stockSymbol }) > 0:
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$pull": { "setBuy": { "$elemMatch": { "stockSymbol": stockSymbol } } } }
-        )
-    if config.USER_COLLECTION.count_documents({ "username": username, "buyTriggers.stockSymbol": stockSymbol }) > 0:
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$pull": { "buyTriggers": { "$elemMatch": { "stockSymbol": stockSymbol } } } }
-        )
+    if db.doesSetBuyExist(username, stockSymbol):
+        db.removeSetBuy(username, stockSymbol)
+    else:
+        #TODO
+        pass
+    if db.doesBuyTriggerExist(username, stockSymbol):
+        db.removeBuyTrigger(username, stockSymbol)
     #TODO this also needs to decrement holdBalance
     return
     
 def SetBuyTrigger(data, transCount):
-    #NOT IN FIRST LOG FILE
     #user,StockSymbol,amount
     #Sets the trigger point base on the current stock price when any SET_BUY will execute
     #user must have specified a SET_BUY_AMOUNT prior to setting TRIGGER
@@ -193,21 +181,14 @@ def SetBuyTrigger(data, transCount):
     amount = data[3]
 
     #check if setBuy exists for stock
-    if config.USER_COLLECTION.count_documents({ "username": username, "setBuy.stockSymbol": stockSymbol }) > 0:
+    if doesSetBuyExist(username, stockSymbol):
         #check if already has trigger for stock
-        if config.USER_COLLECTION.count_documents({ "username": username, "buyTriggers.stockSymbol": stockSymbol }) > 0:
+        if db.doesBuyTriggerExist(username, stockSymbol):
             #user has previous buy trigger for that stock, set that buy trigger amount to new value
-            config.USER_COLLECTION.update_one(
-                { "username": username, "buyTriggers.stockSymbol": stockSymbol },
-                { "$set": { "buyTriggers.$.amount": amount } },
-                upsert=True
-            )
+            db.updateBuyTrigger(username, stockSymbol, amount)
         else:
             #user does not have a buy trigger for that stock
-            config.USER_COLLECTION.update_one(
-                { "username": username },
-                { "$addToSet": { "buyTrigger": { "stockSymbol": stockSymbol, "amount": amount } } },
-            )
+            db.newBuyTrigger(username, stockSymbol, amount)
     else:
         #user does not have a setBuy for that stock
         #TODO return error that they can't set buy trigger until have a set buy
@@ -226,23 +207,14 @@ def SetSellAmount(data, transCount):
     amount = round(float(data[3]), 2)
     numStocksSellAmount = int(amount/stockPrice)
     #ensure user has stock
-    if config.USER_COLLECTION.count_documents({ "username": username, "stocks.stockSymbol": stockSymbol }) > 0:
-        userStockInfo = config.USER_COLLECTION.find_one({ "username": username, "stocks.stockSymbol": stockSymbol })["stocks"]
-        stockInfo = next((x for x in userStockInfo if x["stockSymbol"] == stockSymbol), None)
-        if stockInfo["numberOfStock"] >= numStocksSellAmount:
-            if config.USER_COLLECTION.count_documents({ "username": username, "setSell.stockSymbol": stockSymbol }) > 0:
+    if db.doesUserHaveStock(username, stockSymbol):
+        if db.numberOfStockOwned(username, stockSymbol) >= numStocksSellAmount:
+            if db.doesSetSellExist(username, stockSymbol):
                 #user has previous setSell, set that setSell amount to new value
-                config.USER_COLLECTION.update_one(
-                    { "username": username, "setSell.stockSymbol": stockSymbol },
-                    { "$set": { "setSell.$.amount": amount } },
-                    upsert=True
-                )
+                db.updateSetSell(username, stockSymbol, amount)
             else:
                 #user does not have a setSell for that stock
-                config.USER_COLLECTION.update_one(
-                    { "username": username },
-                    { "$addToSet": { "setSell": { "stockSymbol": stockSymbol, "amount": amount } } },
-                )
+                db.newSetSell(username, stockSymbol, amount)
         else:
             #TODO error for not enough stocks for current value
             return
@@ -263,42 +235,25 @@ def SetSellTrigger(data, transCount):
     stockSymbol = data[2]
     amount = round(float(data[3]), 2)
     #ensure user has stock
-    if config.USER_COLLECTION.count_documents({ "username": username, "stocks.stockSymbol": stockSymbol }) > 0:
+    if db.doesUserHaveStock(username, stockSymbol):
         #ensure user has set sell for that stock
-        if config.USER_COLLECTION.count_documents({ "username": username, "setSell.stockSymbol": stockSymbol }) > 0:
-            if config.USER_COLLECTION.count_documents({ "username": username, "sellTriggers.stockSymbol": stockSymbol }) > 0:
+        if db.doesSetSellExist(username, stockSymbol):
+            if db.doesSellTriggerExist(username, stockSymbol):
                 #user has previous sell trigger for that stock, set that sell trigger amount to new value
-                config.USER_COLLECTION.update_one(
-                    { "username": username, "sellTriggers.stockSymbol": stockSymbol },
-                    { "$set": { "sellTriggers.$.amount": amount } },
-                    upsert=True
-                )
+                db.updateSellTrigger(username, stockSymbol, amount)
             else:
                 #user does not have a buy trigger for that stock
-                config.USER_COLLECTION.update_one(
-                    { "username": username },
-                    { "$addToSet": { "sellTrigger": { "stockSymbol": stockSymbol, "amount": amount } } },
-                )
+                db.newSellTrigger(username, stockSymbol, amount)
             numberOfStocks = int(commandsHelpers.getStockPrice(stockSymbol) * amount)
             #remove stocks from user stocks
-            config.USER_COLLECTION.update_one(
-                { "username": username, "stocks.stockSymbol": stockSymbol },
-                { "$inc": { "stocks.$.numberOfStock": -numberOfStocks } }
-            )
+            db.removeStocks(username, stockSymbol, numberOfStocks)
             #add stocks to user stocksHoldAccount
-            if config.USER_COLLECTION.count_documents({ "username": username, "stocksHoldAccount.stockSymbol": stockSymbol }) > 0:
+            if db.doesUserHaveStockInHold(username, stockSymbol):
                 #user has previously had that stock, increment that stock's numberOfStock
-                config.USER_COLLECTION.update_one(
-                    { "username": username, "stocksHoldAccount.stockSymbol": stockSymbol },
-                    { "$inc": { "stocksHoldAccount.$.numberOfStock": numberofStocks } },
-                    upsert=True
-                )
+                db.updateStockInHold(username, stockSymbol, numberOfStocks)
             else:
                 #user has not previously had that stock, add to stocks array
-                config.USER_COLLECTION.update_one(
-                    { "username": username },
-                    { "$addToSet": { "stocksHoldAccount": { "stockSymbol": stockSymbol, "numberOfStock": numberOfStocks } } },
-                )
+                db.newStockInHold(username, stockSymbol, numberOfStocks)
         else:
             #user does not have a setBell for that stock
             #TODO return error that they can't set sell trigger until have a set buy
@@ -317,19 +272,13 @@ def CancelSetSell(data, transCount):
     transactions.insertUserAndStockSymbolTransaction(data, transCount)
     username = data[1]
     stockSymbol = data[2]
-    if config.USER_COLLECTION.count_documents({ "username": username, "setSell.stockSymbol": stockSymbol }) > 0:
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$pull": { "setSell": { "$elemMatch": { "stockSymbol": stockSymbol } } } }
-        )
+    if db.doesSetSellExist(username, stockSymbol):
+        db.removeSetSell(username, stockSymbol)
     else:
         #TODO add error for no set sell present for that stock
         return
-    if config.USER_COLLECTION.count_documents({ "username": username, "sellTriggers.stockSymbol": stockSymbol }) > 0:
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$pull": { "sellTriggers": { "$elemMatch": { "stockSymbol": stockSymbol } } } }
-        )
+    if db.doesSellTriggerExist(username, stockSymbol):
+        db.removeSellTrigger(username, stockSymbol)
     return
     
 def DumplogUser(data, transCount):

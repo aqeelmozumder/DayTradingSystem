@@ -1,17 +1,15 @@
 import config
 import time
 import pymongo
+import db
 
 def addFunds(username, amount):
     #increment user's balance by amount
-    config.USER_COLLECTION.update_one(
-        { "username": username },
-        { "$inc": { "balance": round(float(amount), 2) } }
-    )
+    db.incrementBalance(username, round(float(amount), 2))
     return
 
 def userBalance(username):
-    user = config.USER_COLLECTION.find_one({ "username": username })
+    user = db.findUser(username)
     return user["balance"]
 
 def getStockPrice(stockSymbol):
@@ -22,17 +20,9 @@ def getStockPrice(stockSymbol):
 
 def insertBuyOrder(data):
     username = data[1]
-    amount = data[3]
-    newOrder = {
-        "buyAmount": round(float(amount), 2),
-        "stockSymbol": data[2],
-        "orderTime": time.time()
-    }
-    newOrderItem = {
-        "$push":
-            { "buyOrders": newOrder} 
-    }
-    config.USER_COLLECTION.update_one({ "username": username }, newOrderItem)
+    stockSymbol = data[2]
+    amount = round(float(data[3]), 2)
+    db.newBuyOrder(username, stockSymbol, amount)
     return
 
 def buyStock(buyOrder, username):
@@ -42,28 +32,21 @@ def buyStock(buyOrder, username):
     
     stockSymbol = buyOrder["stockSymbol"]
     stockPrice = getStockPrice(stockSymbol)
-    numStockBuy = int(buyOrder["buyAmount"] / stockPrice)
+    numberOfStocks = int(buyOrder["buyAmount"] / stockPrice)
 
     #ensure stock exists in users stocks
-    if config.USER_COLLECTION.count_documents({ "username": username, "stocks.stockSymbol": stockSymbol }) > 0:
+    if db.doesUserHaveStock(username, stockSymbol):
         #user has or previously had that stock, increment that stock's numberOfStock
-        config.USER_COLLECTION.update_one(
-            { "username": username, "stocks.stockSymbol": stockSymbol },
-            { "$inc": { "stocks.$.numberOfStock": numStockBuy } },
-            upsert=True
-        )
+        db.addNewStocks(username, stockSymbol, numberOfStocks)
     else:
         #user has not previously had that stock, add to stocks array
-        config.USER_COLLECTION.update_one(
-            { "username": username },
-            { "$addToSet": { "stocks": { "stockSymbol": stockSymbol, "numberOfStock": numStockBuy } } },
-        )
+        db.addStocks(username, stockSymbol, numberOfStocks)
     #decrement user balance by (# of stock) * (stock price)
-    addFunds(username, -round(float(numStockBuy * stockPrice), 2))
+    addFunds(username, -round(float(numberOfStocks * stockPrice), 2))
     return
 
 def getLastBuyOrder(username):
-    user = config.USER_COLLECTION.find_one({ "username": username })
+    user = db.findUser(username)
     if len(user["buyOrders"]) > 0:
         return user["buyOrders"][-1]
     else:
@@ -71,22 +54,14 @@ def getLastBuyOrder(username):
 
 def removeLastBuyOrder(username):
     #remove last buy order from array of buy orders
-    config.USER_COLLECTION.update_one({ "username": username }, { "$pop": { "buyOrders": 1 } })
+    db.removeLastBuyOrder(username)
     return
 
 def insertSellOrder(data):
     username = data[1]
-    amount = data[3]
-    newOrder = {
-        "sellAmount": round(float(amount), 2),
-        "stockSymbol": data[2],
-        "orderTime": time.time()
-    }
-    newOrderItem = {
-        "$push":
-            { "sellOrders": newOrder} 
-    }
-    config.USER_COLLECTION.update_one({ "username": username }, newOrderItem)
+    stockSymbol = data[2]
+    amount = round(float(data[3]), 2)
+    db.newSellOrder(username, stockSymbol, amount)
     return
 
 def sellStock(sellOrder, username):
@@ -95,24 +70,20 @@ def sellStock(sellOrder, username):
 
     stockSymbol = sellOrder["stockSymbol"]
     stockPrice = getStockPrice(stockSymbol)
-    numStockSell = int(sellOrder["sellAmount"] / stockPrice)
+    numberOfStocks = int(sellOrder["sellAmount"] / stockPrice)
     #ensure stock exists in user's stocks
-    if config.USER_COLLECTION.count_documents({ "username": username, "stocks.stockSymbol": stockSymbol }) > 0:
+    if db.doesUserHaveStock(username, stockSymbol):
         #decrement user's # of that stock
-        config.USER_COLLECTION.update_one(
-            { "username": username, "stocks.stockSymbol": stockSymbol },
-            { "$inc": { "stocks.$.numberOfStock": -numStockSell } },
-            upsert=True
-        )
+        db.removeStocks(username, stockSymbol, numberOfStocks)
     else:
         #error about not having the stock
         return
-    depositToUser = round(float(numStockSell * stockPrice), 2)
-    addFunds(username, round(float(numStockSell * stockPrice), 2))
+    depositToUser = round(float(numberOfStocks * stockPrice), 2)
+    addFunds(username, round(float(numberOfStocks * stockPrice), 2))
     return
 
 def getLastSellOrder(username):
-    user = config.USER_COLLECTION.find_one({ "username": username })
+    user = db.findUser(username)
     if len(user["sellOrders"]) > 0:
         return user["sellOrders"][-1]
     else:
@@ -120,5 +91,5 @@ def getLastSellOrder(username):
 
 def removeLastSellOrder(username):
     #remove last sell order from array of sell orders
-    config.USER_COLLECTION.update_one({ "username": username }, { "$pop": { "sellOrders": 1 } })
+    db.removeLastSellOrder(username)
     return

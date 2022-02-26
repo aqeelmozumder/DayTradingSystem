@@ -1,20 +1,26 @@
 import socket
+import pymongo
+import time
 
-TransactionServerHost = "127.0.0.2"  # Standard loopback interface address (localhost)
+myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+logDB = myclient["seng468"]
+logFileCollection = logDB["logfile"]
+
+TransactionServerHost = "127.0.0.1"  # Standard loopback interface address (localhost)
 TransactionServerPort = 65433        # QuoteServerPort to listen on (non-privileged ports are > 1023)
 
 def InitNewConnection(data):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     
-    QuoteServerHost = "127.0.0.6"                           
+    QuoteServerHost = "127.0.0.1"                           
     QuoteServerPort = 65438
 
-    s.connect((QuoteServerHost, QuoteServerPort))                               
+    QuoteSocket.connect((QuoteServerHost, QuoteServerPort))                               
     while True:
-        s.send(data)
+        QuoteSocket.send(data)
         Response = s.recv(2048)
         quotedata = Response
-        s.close()
+        QuoteSocket.close()
         break
                                   
     return quotedata
@@ -31,12 +37,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     
         print('Connected to: ' + addr[0] + ':' + str(addr[1]))
         data = conn.recv(2048)
+        print("HERE WE ARE IN THE TRANSACTion server 1")
+        print(data)
+        #Bunch of Cases
 
-        quotedata = InitNewConnection(data)
+        quoteData = InitNewConnection(data)
+        print("here in trans 2")
+        print(quoteData)
         if not data:
             print("No Data Received")
             break
-        conn.sendall(quotedata)
+        conn.sendall(quoteData)
         
 
 

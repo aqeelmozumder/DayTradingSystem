@@ -1,7 +1,13 @@
 import socket
 from yahoo_fin import stock_info as si
+import pymongo
+import time
 
-QuoteServerHost = "127.0.0.6"  # Standard loopback interface address (localhost)
+myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+logDB = myclient["seng468"]
+logFileCollection = logDB["logfile"]
+
+QuoteServerHost = "127.0.0.1"    # Standard loopback interface address (localhost)
 QuoteServerPort = 65438        # QuoteServerPort to listen on (non-privileged ports are > 1023)
 
 def GetQuotePrice(data):

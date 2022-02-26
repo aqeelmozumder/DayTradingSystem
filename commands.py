@@ -276,7 +276,7 @@ def CancelSetSell(data, transCount):
         db.removeSetSell(username, stockSymbol)
     else:
         #TODO add error for no set sell present for that stock
-        return
+        pass
     if db.doesSellTriggerExist(username, stockSymbol):
         db.removeSellTrigger(username, stockSymbol)
     return

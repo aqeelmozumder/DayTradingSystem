@@ -2,28 +2,21 @@ import socket
 from yahoo_fin import stock_info as si
 import pymongo
 import time
+import config
 
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-logDB = myclient["seng468"]
-logFileCollection = logDB["logfile"]
-
-QuoteServerHost = "127.0.0.1"    # Standard loopback interface address (localhost)
+QuoteServerHost = "127.0.0.1"  # Standard loopback interface address (localhost)
 QuoteServerPort = 65438        # QuoteServerPort to listen on (non-privileged ports are > 1023)
 
 def GetQuotePrice(data):
-
     ticker = data.decode('utf-8')
-
     # print("the ticker is: " + ticker)
     quoteprice = si.get_live_price(ticker)
-
     return str(quoteprice)
 
-
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((QuoteServerHost, QuoteServerPort))
+    s.bind((config.QuoteServerHost, config.QuoteServerPort))
     s.listen()
-    print('listening on', (QuoteServerHost, QuoteServerPort))
+    print('listening on', (config.QuoteServerHost, config.QuoteServerPort))
     
     while True:
         conn, addr = s.accept()

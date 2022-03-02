@@ -3,6 +3,7 @@ import sys
 import json
 import pickle
 import config
+import time
 
 #Try Connecting to the WebServer and if successful return True
 def ConnectToWebServer(ClientSocket, WebServerHost, WebServerPort):
@@ -34,12 +35,13 @@ def ParseAndSend(ClientSocket):
             Data = pickle.dumps(Input)
 
             ClientSocket.send(Data)
+            time.sleep(0.1)
             Response = ClientSocket.recv(4096)
             print(Response.decode('utf-8'))
             count = count +1
-    file.close()
-    Response = ClientSocket.recv(2048)
-    return Response.decode('utf-8')
+    #file.close()
+    #Response = ClientSocket.recv(2048)
+    return #Response.decode('utf-8')
 
 def main():
     #Init ClientSocket, WebServer host and port that the client will use to connect
@@ -50,8 +52,8 @@ def main():
 
     #If the the connection is succesful then we will parse the file and send the data to the WebServer
     if(Connection):
-        Response = ParseAndSend(ClientSocket)
-        print(Response)
+        ParseAndSend(ClientSocket)
+        #print(Response)
 
     ClientSocket.close()
 

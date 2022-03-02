@@ -1,3 +1,5 @@
+import socket
+import pickle
 import config
 import transactions
 import commandsHelpers
@@ -5,19 +7,36 @@ import pymongo
 import time
 import db
 
+
+# Connect To Quote Server
+def ConnectToQuoteServer(data):
+    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+
+    while True:
+        QuoteSocket.send(pickle.dumps(data))
+        Response = QuoteSocket.recv(2048)
+        QuoteSocket.close()
+        if Response:
+            break
+  
+    return pickle.loads(Response)   
+
 def Add(data, transCount):
     #user, amount
     #add given amout to users account
     transactions.insertUserAndAmountTransaction(data, transCount)
     commandsHelpers.addFunds(data[1], data[2])
-    return
+    return "Account balance updated"
     
 def Quote(data, transCount):
     #user,StockSymbol
     #get current quote for the stock for specified user
-    transactions.insertUserAndStockSymbolTransaction(data, transCount)
-    #TODO need more here on interaction with quote server
-    return
+    response_from_QuoteServer = ConnectToQuoteServer(data)
+    data.append(response_from_QuoteServer[0])
+    transactions.insertUserAndStockSymbolPriceTransaction(data, transCount)
+    
+    return ", ".join(str(item) for item in response_from_QuoteServer)
     
 def Buy(data, transCount):
     #user,StockSymbol,amount
@@ -27,11 +46,10 @@ def Buy(data, transCount):
     transactions.insertUserStockSymbolAndAmountTransaction(data, transCount)
     if commandsHelpers.userBalance(data[1]) >= round(float(data[3]), 2):
         commandsHelpers.insertBuyOrder(data)
-        return
+        return "Please chose commit or cancel your order"
     else:
-        #TODO need not enough funds error
-        return
-    return
+        # need not enough funds error
+        return "Insufficient balance"
     
 def CommitBuy(data, transCount):
     #user
@@ -46,13 +64,16 @@ def CommitBuy(data, transCount):
         if (buyOrder["orderTime"] >= time.time() - 60):
             if commandsHelpers.userBalance(username) >= buyOrder["buyAmount"]:
                 commandsHelpers.buyStock(buyOrder, username)
+                return "BUY order completed"
             else:
-                #TODO error for not enough balance
-                return
+                # error for not enough balance
+                return "Insufficient balance"
         else:
-            #TODO error for 60 seconds having passed
-            return
-    return
+            # error for 60 seconds having passed
+            #return "No previous BUY order within 60S"
+            pass
+    return "No previous BUY order within 60S"
+    
     
 def CancelBuy(data, transCount):
     #user
@@ -65,24 +86,26 @@ def CancelBuy(data, transCount):
     if buyOrder:
         if buyOrder["orderTime"] >= time.time() - 60:
             commandsHelpers.removeLastBuyOrder(username)
+            return "BUY order cancelled"
         else:
-            #TODO error for 60 seconds having passed
-            return
-    return
+            # error for 60 seconds having passed
+            #return "No previous BUY order within 60S"
+            pass
+    return "No previous BUY order within 60S"
     
 def Sell(data, transCount):
     #user, StockSymbol,amount
     #sell specified dollar amnt of the stock currently held by specified user
     #users acnt for stock must be greater or equal to amnt being sold
     #user asked to confirm or cancel
+    # TODO checking if the user have that much amount of stock to sell 
     transactions.insertUserStockSymbolAndAmountTransaction(data, transCount)
     if commandsHelpers.userBalance(data[1]) >= round(float(data[3]), 2):
         commandsHelpers.insertSellOrder(data)
-        return
+        return "Please chose commit or cancel your order"
     else:
-        #TODO need not enough funds error
-        return
-    return
+        # not enough stock error
+        return "You do not have that much amount of stocks in your account"
     
 def CommitSell(data, transCount):
     #user
@@ -97,13 +120,15 @@ def CommitSell(data, transCount):
         if (sellOrder["orderTime"] >= time.time() - 60):
             if commandsHelpers.userBalance(username) >= sellOrder["sellAmount"]:
                 commandsHelpers.sellStock(sellOrder, username)
+                return "SELL order completed"
             else:
-                #TODO error for not enough balance
-                return
+                # not enough stock error
+                return "You do not have that much amount of stocks in your account"
         else:
-            #TODO error for 60 seconds having passed
-            return
-    return
+            # error for 60 seconds having passed
+            #return "No previous SELL order within 60S"
+            pass
+    return "No previous SELL order within 60S"
     
 def CancelSell(data, transCount):
     #user
@@ -115,13 +140,16 @@ def CancelSell(data, transCount):
     if sellOrder:
         if sellOrder["orderTime"] >= time.time() - 60:
             commandsHelpers.removeLastSellOrder(username)
+            return "SELL order cancelled"
         else:
-            #TODO error for 60 seconds having passed
-            return
+            # error for 60 seconds having passed
+            #return "No previous SELL order within 60S"
+            pass
     else:
-        #TODO error for sell order not existing
-        return
-    return
+        # error for sell order not existing
+        #return "No previous SELL order within 60S"
+        pass
+    return "No previous SELL order within 60S"
 
 def SetBuyAmount(data, transCount):
     #user,StockSymbol,amount
@@ -146,9 +174,10 @@ def SetBuyAmount(data, transCount):
         commandsHelpers.addFunds(username, -amount)
         #increment holdBalance by amount
         db.incrementHoldBalance(username, amount)
+        return "SET BUY for the given stock has been updated"
     else:
-        #TODO error for not enough funds
-        return
+        # error for not enough funds
+        return "Insufficient balance to create reserve account"
     return
 
 def CancelSetBuy(data, transCount):
@@ -162,13 +191,14 @@ def CancelSetBuy(data, transCount):
     transactions.insertUserAndStockSymbolTransaction(data, transCount)
     if db.doesSetBuyExist(username, stockSymbol):
         db.removeSetBuy(username, stockSymbol)
+        response = "The SET BUY for the given stock is removed\n"
     else:
-        #TODO
-        pass
+        response = "No existing SET BUY for the given stock\n"
     if db.doesBuyTriggerExist(username, stockSymbol):
+        # this also needs to decrement holdBalance
         db.removeBuyTrigger(username, stockSymbol)
-    #TODO this also needs to decrement holdBalance
-    return
+        response += "The BUY TRIGGER for the given stock is removed"
+    return response
     
 def SetBuyTrigger(data, transCount):
     #user,StockSymbol,amount
@@ -181,7 +211,7 @@ def SetBuyTrigger(data, transCount):
     amount = data[3]
 
     #check if setBuy exists for stock
-    if doesSetBuyExist(username, stockSymbol):
+    if db.doesSetBuyExist(username, stockSymbol):
         #check if already has trigger for stock
         if db.doesBuyTriggerExist(username, stockSymbol):
             #user has previous buy trigger for that stock, set that buy trigger amount to new value
@@ -189,10 +219,11 @@ def SetBuyTrigger(data, transCount):
         else:
             #user does not have a buy trigger for that stock
             db.newBuyTrigger(username, stockSymbol, amount)
+        return "BUY TRIGGER for the given stock has been updated"
     else:
         #user does not have a setBuy for that stock
-        #TODO return error that they can't set buy trigger until have a set buy
-        return
+        # return error that they can't set buy trigger until have a set buy
+        return "Make sure you already had SET BUY before setting BUY TRIGGER"
     return
     
 def SetSellAmount(data, transCount):
@@ -215,12 +246,13 @@ def SetSellAmount(data, transCount):
             else:
                 #user does not have a setSell for that stock
                 db.newSetSell(username, stockSymbol, amount)
+            return "SET SELL for the given stock has been updated"
         else:
-            #TODO error for not enough stocks for current value
-            return
+            # error for not enough stocks for current value
+            return "Do not have that amount of stocks in your account"
     else:
-        #TODO error for user not having that stock
-        return
+        # error for user not having that stock
+        return "The given stock does not exist in your account"
     return
     
 def SetSellTrigger(data, transCount):
@@ -244,6 +276,7 @@ def SetSellTrigger(data, transCount):
             else:
                 #user does not have a buy trigger for that stock
                 db.newSellTrigger(username, stockSymbol, amount)
+
             numberOfStocks = int(commandsHelpers.getStockPrice(stockSymbol) * amount)
             #remove stocks from user stocks
             db.removeStocks(username, stockSymbol, numberOfStocks)
@@ -254,13 +287,15 @@ def SetSellTrigger(data, transCount):
             else:
                 #user has not previously had that stock, add to stocks array
                 db.newStockInHold(username, stockSymbol, numberOfStocks)
+            
+            return "SELL TRIGGER for the given stock has been updated"
         else:
             #user does not have a setBell for that stock
-            #TODO return error that they can't set sell trigger until have a set buy
-            return
+            # return error that they can't set sell trigger until have a set buy
+            return "Make sure you already had SET SELL before setting SELL TRIGGER"
     else:
-        #TODO error that user doens't have any of those stocks
-        return
+        # error that user doens't have any of those stocks
+        return "The given stock does not exist in your account"
     return
     
 def CancelSetSell(data, transCount):
@@ -274,19 +309,59 @@ def CancelSetSell(data, transCount):
     stockSymbol = data[2]
     if db.doesSetSellExist(username, stockSymbol):
         db.removeSetSell(username, stockSymbol)
+        response = "The SET SELL for the given stock is removed\n"
     else:
-        #TODO add error for no set sell present for that stock
-        pass
+        # add error for no set sell present for that stock
+        response = "No existing SET SELL for the given stock\n" 
     if db.doesSellTriggerExist(username, stockSymbol):
         db.removeSellTrigger(username, stockSymbol)
-    return
+        response += "The SELL TRIGGER for the given stock is removed"
+    return response
     
 def DumplogUser(data, transCount):
     #NOT IN FIRST LOG FILE
     #user,filename
     #print history of users transactions to the spec'd file
     transactions.insertUserAndFilenameTransaction(data, transCount)
-    #TODO set up dumplog for user
+    # set up dumplog for user
+    userid = data[1]
+    filename = data[2]
+
+    f = open(filename, "w")
+    f.write('<?xml version="1.0"?>\n')
+    f.write("<log>\n")
+    #print history of users transactions to the spec'd file
+
+    logdata = config.USER_COLLECTION.find(
+        { "username": userid },{"transactions":1, "_id": 0})
+    logdata1 = logdata.next()
+
+    for value in logdata1["transactions"]:
+        if "type" in value:
+            f.write("   <"+value["type"]+">\n")
+        if  "timeStamp" in value:
+            f.write('      <timestamp>'+ str(round(value["timeStamp"]))+'</timestamp>\n')
+        if  "server" in value:
+            f.write("      <server>"+str(value["server"])+"</server>\n")
+        if "transactionNum" in value:
+            f.write("      <transactionNum>"+str(value["transactionNum"])+"</transactionNum>\n")
+        if "action" in value:
+            f.write("      <action>"+str(value["action"])+"</action>\n")
+        if "command" in value:
+            f.write("      <command>"+str(value["command"])+"</command>\n")
+        if "username" in value:
+            f.write("      <username>"+str(value["username"])+"</username>\n")
+        if "stockSymbol" in value:
+            f.write("      <stockSymbol>"+str(value["stockSymbol"])+"</stockSymbol>\n")
+        if "funds" in value:
+            f.write("      <funds>"+str(value["funds"])+"</funds>\n")
+        if "stockPrice" in value:
+            f.write("      <stockPrice>"+str(value["stockPrice"])+"</stockPrice>\n")
+        if "type" in value:
+            f.write("   </"+str(value["type"])+">\n")
+    f.write("</log>")
+    f.close()
+
     return
     
 def Dumplog(data, transCount):
@@ -294,8 +369,50 @@ def Dumplog(data, transCount):
     #print to the spec'd file the complete set of transactions that have occured in system
     #can only be executed from the supervisor/root/admin account
     transactions.insertFilenameTransaction(data, transCount)
-    #TODO set up dumplog of all transactions
-    #TODO when we add admin users, only they can complete this transaction
+    filename = data[1]
+    f = open(filename, "w")
+    f.write('<?xml version="1.0"?>\n')
+    f.write("<log>\n")
+    #print history of users transactions to the spec'd file
+    list_of_name = config.USER_COLLECTION.find({"username":{"$not":{"$eq":"ADMIN"}}},{"username":1,"_id":0})
+    names = list_of_name.next()
+    logdata = 0
+    for name in names:
+        if len(names) == 1:
+            logdata = config.USER_COLLECTION.find(
+                { "username": names[name] },{"transactions":1, "_id": 0})
+        else:
+            logdata = config.USER_COLLECTION.find(
+                { "username": name["username"] },{"transactions":1, "_id": 0})
+        logdata1 = logdata.next()
+
+        for value in logdata1["transactions"]:
+            if "type" in value:
+                f.write("   <"+value["type"]+">\n")
+            if  "timeStamp" in value:
+                f.write('      <timestamp>'+ str(round(value["timeStamp"]))+'</timestamp>\n')
+            if  "server" in value:
+                f.write("      <server>"+str(value["server"])+"</server>\n")
+            if "transactionNum" in value:
+                f.write("      <transactionNum>"+str(value["transactionNum"])+"</transactionNum>\n")
+            if "action" in value:
+                f.write("      <action>"+str(value["action"])+"</action>\n")
+            if "command" in value:
+                f.write("      <command>"+str(value["command"])+"</command>\n")
+            if "username" in value:
+                f.write("      <username>"+str(value["username"])+"</username>\n")
+            if "stockSymbol" in value:
+                f.write("      <stockSymbol>"+str(value["stockSymbol"])+"</stockSymbol>\n")
+            if "funds" in value:
+                f.write("      <funds>"+str(value["funds"])+"</funds>\n")
+            if "stockPrice" in value:
+                f.write("      <stockPrice>"+str(value["stockPrice"])+"</stockPrice>\n")
+            if "type" in value:
+                f.write("   </"+str(value["type"])+">\n")
+    f.write("</log>")
+    f.close()
+    # set up dumplog of all transactions
+    # when we add admin users, only they can complete this transaction
     return
     
 def DisplaySummary(data, transCount):

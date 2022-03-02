@@ -1,4 +1,6 @@
+import socket
 import config
+import pickle
 import time
 import pymongo
 import db
@@ -13,10 +15,19 @@ def userBalance(username):
     return user["balance"]
 
 def getStockPrice(stockSymbol):
-    # TODO
     #this needs to get stock price from quote server
     #will just return dollar value of stock
-    return 5.00
+    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+
+    while True:
+        QuoteSocket.send(pickle.dumps(stockSymbol))
+        Response = QuoteSocket.recv(2048)
+        QuoteSocket.close()
+        if Response:
+            break
+  
+    return pickle.loads(Response)
 
 def insertBuyOrder(data):
     username = data[1]

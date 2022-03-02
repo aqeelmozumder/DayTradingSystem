@@ -73,6 +73,24 @@ def insertUserAndStockSymbolTransaction(data, transCount):
     insertNewTransaction(username, newTransaction)
     return
 
+def insertUserAndStockSymbolPriceTransaction(data, transCount):
+    command = data[0]
+    username = data[1]
+    stockSymbol = data[2]
+    stockPrice = data[3]
+    newTransaction = {
+        "type": "UserCommand",
+        "timeStamp": time.time(),
+        "server": "WebServer",
+        "transactionNum": transCount,
+        "command": command,
+        "username": username,
+        "stockSymbol": stockSymbol,
+        "stockPrice": stockPrice
+    }
+    insertNewTransaction(username, newTransaction)
+    return
+
 def insertUserStockSymbolAndAmountTransaction(data, transCount):
     command = data[0]
     username = data[1]

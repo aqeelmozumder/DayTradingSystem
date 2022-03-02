@@ -60,38 +60,39 @@ def threaded_client(connection):
     transCount = 0
     while True:
         data = connection.recv(4096)
+        Reply = "Received"
         # The Request from the client is Received here
         try:
             RequestData_from_Client = pickle.loads(data)
             command = RequestData_from_Client[0]
             if command == 'ADD':
-                commands.Add(RequestData_from_Client, transCount)
+                Reply = commands.Add(RequestData_from_Client, transCount)
             elif command == 'QUOTE':
-                commands.Quote(RequestData_from_Client, transCount)
+                Reply = commands.Quote(RequestData_from_Client, transCount)
             elif command == 'BUY':
-                commands.Buy(RequestData_from_Client, transCount)
+                Reply = commands.Buy(RequestData_from_Client, transCount)
             elif command == 'COMMIT_BUY':
-                commands.CommitBuy(RequestData_from_Client, transCount)
+                Reply = commands.CommitBuy(RequestData_from_Client, transCount)
             elif command == 'CANCEL_BUY':
-                commands.CancelBuy(RequestData_from_Client, transCount)
+                Reply = commands.CancelBuy(RequestData_from_Client, transCount)
             elif command == 'SELL':
-                commands.Sell(RequestData_from_Client, transCount)
+                Reply = commands.Sell(RequestData_from_Client, transCount)
             elif command == 'COMMIT_SELL':
-                commands.CommitSell(RequestData_from_Client, transCount)
+                Reply = commands.CommitSell(RequestData_from_Client, transCount)
             elif command == 'CANCEL_SELL':
-                commands.CancelSell(RequestData_from_Client, transCount)
+                Reply = commands.CancelSell(RequestData_from_Client, transCount)
             elif command == 'SET_BUY_AMOUNT':
-                commands.SetBuyAmount(RequestData_from_Client, transCount)
+                Reply = commands.SetBuyAmount(RequestData_from_Client, transCount)
             elif command == 'CANCEL_SET_BUY':
-                commands.CancelSetBuy(RequestData_from_Client, transCount)
+                Reply = commands.CancelSetBuy(RequestData_from_Client, transCount)
             elif command == 'SET_BUY_TRIGGER':
-                commands.SetBuyTrigger(RequestData_from_Client, transCount)
+                Reply = commands.SetBuyTrigger(RequestData_from_Client, transCount)
             elif command == 'SET_SELL_AMOUNT':
-                commands.SetSellAmount(RequestData_from_Client, transCount)
+                Reply = commands.SetSellAmount(RequestData_from_Client, transCount)
             elif command == 'SET_SELL_TRIGGER':
-                commands.SetSellTrigger(RequestData_from_Client, transCount)
+                Reply = commands.SetSellTrigger(RequestData_from_Client, transCount)
             elif command == 'CANCEL_SET_SELL':
-                commands.CancelSetSell(RequestData_from_Client, transCount)
+                Reply = commands.CancelSetSell(RequestData_from_Client, transCount)
             elif command == 'DUMPLOG':
                 if len(RequestData_from_Client) == 2:
                     commands.Dumplog(RequestData_from_Client, transCount)
@@ -106,7 +107,6 @@ def threaded_client(connection):
 
         #Response_Transaction_Server = ConnectToTransactionServer(data)
         
-        Reply = "Received"
         connection.sendall(str.encode(Reply))
     connection.close()
 

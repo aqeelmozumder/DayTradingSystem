@@ -1,42 +1,34 @@
 import socket
-
-TransactionServerHost = "127.0.0.2"  # Standard loopback interface address (localhost)
-TransactionServerPort = 65433        # QuoteServerPort to listen on (non-privileged ports are > 1023)
+import time
+import config
 
 def InitNewConnection(data):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    
-    QuoteServerHost = "127.0.0.6"                           
-    QuoteServerPort = 65438
-
-    s.connect((QuoteServerHost, QuoteServerPort))                               
+    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+                            
     while True:
-        s.send(data)
+        QuoteSocket.send(data)
         Response = s.recv(2048)
         quotedata = Response
-        s.close()
+        QuoteSocket.close()
         break
-                                  
+
     return quotedata
 
-
-
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((TransactionServerHost, TransactionServerPort))
+    s.bind((config.TransactionServerHost, config.TransactionServerPort))
     s.listen()
-    print('listening on', (TransactionServerHost, TransactionServerPort))
+    print('listening on', (config.TransactionServerHost, config.TransactionServerPort))
     
     while True:
         conn, addr = s.accept()
-    
         print('Connected to: ' + addr[0] + ':' + str(addr[1]))
-        data = conn.recv(2048)
 
-        quotedata = InitNewConnection(data)
+        data = conn.recv(2048)
+        quoteData = InitNewConnection(data)
+
         if not data:
             print("No Data Received")
             break
-        conn.sendall(quotedata)
-        
 
-
+        conn.sendall(quoteData)

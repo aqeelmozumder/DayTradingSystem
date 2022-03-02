@@ -1,55 +1,114 @@
 import socket
 import os
+import json
+import pickle
 from _thread import *
+import pymongo
+import time
+import config
+import commands
 
-def InitNewConnection(data):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+config.USER_COLLECTION.delete_many({})
 
-    TransactionServerHost = "127.0.0.2"                           
-    TransactionServerPort = 65433
+def main():
+    
+    #Init ClientSocket, WebServer host and port that the client will use to connect
+    ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    s.connect((TransactionServerHost, TransactionServerPort))                               
+    #Bind the webserver
+    BindWebServer(ServerSocket, config.WebServerHost, config.WebServerPort)
+
+    ServerSocket.close()
+
+#Bind and Start Listening
+def BindWebServer(ServerSocket, WebServerHost, WebServerPort):
+    
+    try:
+        ServerSocket.bind((WebServerHost, WebServerPort))
+    except socket.error as e:
+        print(str(e))
+        
+    print('Waitiing for a Connection..')
+    ServerSocket.listen(5)
+    print('listening on', (WebServerHost, WebServerPort))
+    
     while True:
-        s.send(data)
-        Response = s.recv(2048)
-        s.close()
+        Client, address = ServerSocket.accept()
+        print('Connected to: ' + address[0] + ':' + str(address[1]))
+#Create a Thread for the Client/Connection
+        start_new_thread(threaded_client, (Client, ))
+
+
+
+# Connect To Transaction Servr
+def ConnectToTransactionServer(data):
+    TransactionSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    TransactionSocket.connect((config.TransactionServerHost, config.TransactionServerPort))
+
+    while True:
+        TransactionSocket.send(data)
+        Response = TransactionSocket.recv(2048)
+        TransactionSocket.close()
         break
   
-    return Response                               
-
-ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-WebServerhost = '127.0.0.1'
-WebServerPort = 65432
-ThreadCount = 0
-try:
-    ServerSocket.bind((WebServerhost, WebServerPort))
-except socket.error as e:
-    print(str(e))
-
-print('Waitiing for a Connection..')
-ServerSocket.listen(5)
-print('listening on', (WebServerhost, WebServerPort))
+    return Response.decode('utf-8')                            
 
 
 def threaded_client(connection):
-    connection.send(str.encode('Welcome to the Servern'))
+    RequestData_from_Client = []
+    connection.send(str.encode('Connection Threaded'))
+    transCount = 1
     while True:
-        data = connection.recv(2048)
-        Price = InitNewConnection(data)
-        reply = Price.decode('utf-8')
+        data = connection.recv(4096)
+        Reply = "Received"
+        # The Request from the client is Received here
+        try:
+            RequestData_from_Client = pickle.loads(data)
+            command = RequestData_from_Client[0]
+            if command == 'ADD':
+                Reply = commands.Add(RequestData_from_Client, transCount)
+            elif command == 'QUOTE':
+                Reply = commands.Quote(RequestData_from_Client, transCount)
+            elif command == 'BUY':
+                Reply = commands.Buy(RequestData_from_Client, transCount)
+            elif command == 'COMMIT_BUY':
+                Reply = commands.CommitBuy(RequestData_from_Client, transCount)
+            elif command == 'CANCEL_BUY':
+                Reply = commands.CancelBuy(RequestData_from_Client, transCount)
+            elif command == 'SELL':
+                Reply = commands.Sell(RequestData_from_Client, transCount)
+            elif command == 'COMMIT_SELL':
+                Reply = commands.CommitSell(RequestData_from_Client, transCount)
+            elif command == 'CANCEL_SELL':
+                Reply = commands.CancelSell(RequestData_from_Client, transCount)
+            elif command == 'SET_BUY_AMOUNT':
+                Reply = commands.SetBuyAmount(RequestData_from_Client, transCount)
+            elif command == 'CANCEL_SET_BUY':
+                Reply = commands.CancelSetBuy(RequestData_from_Client, transCount)
+            elif command == 'SET_BUY_TRIGGER':
+                Reply = commands.SetBuyTrigger(RequestData_from_Client, transCount)
+            elif command == 'SET_SELL_AMOUNT':
+                Reply = commands.SetSellAmount(RequestData_from_Client, transCount)
+            elif command == 'SET_SELL_TRIGGER':
+                Reply = commands.SetSellTrigger(RequestData_from_Client, transCount)
+            elif command == 'CANCEL_SET_SELL':
+                Reply = commands.CancelSetSell(RequestData_from_Client, transCount)
+            elif command == 'DUMPLOG':
+                if len(RequestData_from_Client) == 2:
+                    commands.Dumplog(RequestData_from_Client, transCount)
+                else:
+                    commands.DumplogUser(RequestData_from_Client, transCount)
+            elif command == 'DISPLAY_SUMMARY':
+                commands.DisplaySummary(RequestData_from_Client, transCount)
+        except EOFError:
+            print("error", data)
+
+        transCount += 1
+
+        #Response_Transaction_Server = ConnectToTransactionServer(data)
         
-        if not data:
-            print("No Data Received")
-            break
-        connection.sendall(str.encode(reply))
-    
+        connection.sendall(str.encode(Reply))
     connection.close()
 
-while True:
-    Client, address = ServerSocket.accept()
-    print('Connected to: ' + address[0] + ':' + str(address[1]))
-    start_new_thread(threaded_client, (Client, ))
-    # ThreadCount += 1
-    # print('Thread Number: ' + str(ThreadCount))
 
-ServerSocket.close()
+main()

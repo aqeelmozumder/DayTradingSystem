@@ -28,9 +28,7 @@ def ParseAndSend(ClientSocket):
 
             #Will strip [1],[2] etc. will also remove whitespaces and trailing new lines. Then split them between the commas
             Input = lines.strip(RemoveCharacters).strip(" ").rstrip("\n").rstrip(" ").split(",")
-            print("here we are in the client 1")
-            print(type(Input))
-            print(Input)
+
             #Send the list of data using Pickle Dumps
             Data = pickle.dumps(Input)
 

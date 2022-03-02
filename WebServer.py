@@ -57,7 +57,7 @@ def ConnectToTransactionServer(data):
 def threaded_client(connection):
     RequestData_from_Client = []
     connection.send(str.encode('Connection Threaded'))
-    transCount = 0
+    transCount = 1
     while True:
         data = connection.recv(4096)
         Reply = "Received"

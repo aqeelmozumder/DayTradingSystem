@@ -46,8 +46,8 @@ def insertUserAndAmountTransaction(data, transCount):
     username = data[1]
     amount = data[2]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time() *1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,
@@ -62,8 +62,8 @@ def insertUserAndStockSymbolTransaction(data, transCount):
     username = data[1]
     stockSymbol = data[2]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time() * 1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,
@@ -78,15 +78,20 @@ def insertUserAndStockSymbolPriceTransaction(data, transCount):
     username = data[1]
     stockSymbol = data[2]
     stockPrice = data[3]
+    quoteServerTime = data[4]
+    cryptokey = data[5]
+
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "quoteServer",
+        "timeStamp": time.time() * 1000,
         "server": "WebServer",
         "transactionNum": transCount,
-        "command": command,
         "username": username,
         "stockSymbol": stockSymbol,
-        "stockPrice": stockPrice
+        "price": stockPrice,
+        "quoteServerTime": int(quoteServerTime),
+        "cryptokey": cryptokey
+
     }
     insertNewTransaction(username, newTransaction)
     return
@@ -97,8 +102,8 @@ def insertUserStockSymbolAndAmountTransaction(data, transCount):
     stockSymbol = data[2]
     amount = data[3]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time() * 1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,
@@ -113,8 +118,8 @@ def insertUserTransaction(data, transCount):
     command = data[0]
     username = data[1]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time() *1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,
@@ -128,8 +133,8 @@ def insertUserAndFilenameTransaction(data, transCount):
     username = data[1]
     filename = data[2]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time()*1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,
@@ -143,8 +148,8 @@ def insertFilenameTransaction(data, transCount):
     command = data[0]
     filename = data[1]
     newTransaction = {
-        "type": "UserCommand",
-        "timeStamp": time.time(),
+        "type": "userCommand",
+        "timeStamp": time.time()*1000,
         "server": "WebServer",
         "transactionNum": transCount,
         "command": command,

@@ -13,11 +13,10 @@ def GetQuotePrice(data):
     receive_from_web = pickle.loads(data)
     
     if len(receive_from_web) > 1:
-    # print("the ticker is: " + ticker)
         stockSymbol = receive_from_web[2]
         quoteprice = round(si.get_live_price(stockSymbol), 2)
         username = receive_from_web[1]
-        timestamp = time.time()
+        timestamp = time.time() * 1000
         cryptokey = str(uuid.uuid1())
 
         return [quoteprice, stockSymbol, username, timestamp, cryptokey]

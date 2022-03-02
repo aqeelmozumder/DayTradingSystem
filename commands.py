@@ -34,6 +34,8 @@ def Quote(data, transCount):
     #get current quote for the stock for specified user
     response_from_QuoteServer = ConnectToQuoteServer(data)
     data.append(response_from_QuoteServer[0])
+    data.append(response_from_QuoteServer[3])
+    data.append(response_from_QuoteServer[4])
     transactions.insertUserAndStockSymbolPriceTransaction(data, transCount)
     
     return ", ".join(str(item) for item in response_from_QuoteServer)
@@ -355,8 +357,12 @@ def DumplogUser(data, transCount):
             f.write("      <stockSymbol>"+str(value["stockSymbol"])+"</stockSymbol>\n")
         if "funds" in value:
             f.write("      <funds>"+str(value["funds"])+"</funds>\n")
-        if "stockPrice" in value:
-            f.write("      <stockPrice>"+str(value["stockPrice"])+"</stockPrice>\n")
+        if "price" in value:
+            f.write("      <price>"+str(value["stockPrice"])+"</price>\n")
+        if "quoteServerTime" in value:
+            f.write("      <quoteServerTime>"+str(value["quoteServerTime"])+"</quoteServerTime>\n")
+        if "cryptokey" in value:
+            f.write("      <cryptokey>"+str(value["cryptokey"])+"</cryptokey>\n")
         if "type" in value:
             f.write("   </"+str(value["type"])+">\n")
     f.write("</log>")
@@ -405,8 +411,12 @@ def Dumplog(data, transCount):
                 f.write("      <stockSymbol>"+str(value["stockSymbol"])+"</stockSymbol>\n")
             if "funds" in value:
                 f.write("      <funds>"+str(value["funds"])+"</funds>\n")
-            if "stockPrice" in value:
-                f.write("      <stockPrice>"+str(value["stockPrice"])+"</stockPrice>\n")
+            if "price" in value:
+                f.write("      <price>"+str(value["price"])+"</price>\n")
+            if "quoteServerTime" in value:
+                f.write("      <quoteServerTime>"+str(value["quoteServerTime"])+"</quoteServerTime>\n")
+            if "cryptokey" in value:
+                f.write("      <cryptokey>"+str(value["cryptokey"])+"</cryptokey>\n")
             if "type" in value:
                 f.write("   </"+str(value["type"])+">\n")
     f.write("</log>")

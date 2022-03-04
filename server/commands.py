@@ -11,7 +11,7 @@ import db
 # Connect To Quote Server
 def ConnectToQuoteServer(data):
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+    QuoteSocket.connect(('quoteserver', config.QuoteServerPort))
 
     while True:
         QuoteSocket.send(pickle.dumps(data))

@@ -10,7 +10,7 @@ def ConnectToWebServer(ClientSocket, WebServerHost, WebServerPort):
 
     print('Waiting for connection')
     try:
-        ClientSocket.connect((WebServerHost, WebServerPort))
+        ClientSocket.connect(('webserver', WebServerPort))
         return True
     except socket.error as e:
         print(str(e))
@@ -18,7 +18,7 @@ def ConnectToWebServer(ClientSocket, WebServerHost, WebServerPort):
 
 #Parse the file and send each line of data as a request to the Webserver
 def ParseAndSend(ClientSocket):
-    with open("Commands.txt", "r") as file:
+    with open("./client/Commands.txt", "r") as file:
         count = 1
         Input : list
         for lines in file:

@@ -8,7 +8,12 @@ import time
 import config
 import commands
 
-config.USER_COLLECTION.delete_many({})
+
+CLIENT = pymongo.MongoClient("mongodb://admin:admin@mongo:27017/seng468?authSource=admin")
+APP_DATABASE = CLIENT["seng468"]
+USER_COLLECTION = APP_DATABASE["config.userCollection"]
+
+# USER_COLLECTION.delete_many({})
 
 def main():
     

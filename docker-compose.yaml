@@ -1,0 +1,53 @@
+version: "3"
+
+services:
+
+  client:
+    container_name: client
+    build: ./client
+    links:
+      - webserver
+    depends_on:
+      - webserver
+      - quoteserver
+    volumes:
+      - /data/log
+      
+  webserver:
+    container_name: webserver
+    build: ./server
+    links:
+      - mongo
+    ports:
+      - 65432:65432
+    environment:
+      - MONGO_SERVER=mongo
+      - MONGO_INITDB_DATABASE=seng468
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    volumes:
+      - /data/log
+    
+      
+
+  mongo:
+    container_name: mongo
+    image: mongo
+    command: mongod --auth --port 27017
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_DATABASE=seng468
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    volumes:
+      - /data/db
+
+  quoteserver:
+    container_name: quoteserver
+    build: ./quoteserver
+    ports:
+      - 65438:65438
+    
+  
+

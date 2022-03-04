@@ -2,8 +2,12 @@ import config
 import time
 import pymongo
 
+CLIENT = pymongo.MongoClient("mongodb://admin:admin@mongo:27017/seng468?authSource=admin")
+APP_DATABASE = CLIENT["seng468"]
+USER_COLLECTION = APP_DATABASE["config.userCollection"]
+
 def doesUserExist(username):
-    return config.USER_COLLECTION.count_documents({ "username": username }) > 0
+    return USER_COLLECTION.count_documents({ "username": username }) > 0
 
 def insertNewUserTransaction(username, newTransaction):
     newUser = {
@@ -22,7 +26,7 @@ def insertNewUserTransaction(username, newTransaction):
         "sellTriggers": [],
         "stocksHoldAccount": []
     }
-    config.USER_COLLECTION.insert_one(newUser)
+    USER_COLLECTION.insert_one(newUser)
     return
 
 def insertExistingUserTransaction(username, newTransaction):

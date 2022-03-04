@@ -18,7 +18,7 @@ def getStockPrice(stockSymbol):
     #this needs to get stock price from quote server
     #will just return dollar value of stock
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+    QuoteSocket.connect(('quoteserver', config.QuoteServerPort))
 
     while True:
         QuoteSocket.send(pickle.dumps(stockSymbol))

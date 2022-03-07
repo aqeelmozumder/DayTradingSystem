@@ -1,8 +1,6 @@
 import socket
 import config
 import pickle
-import time
-import pymongo
 import db
 
 def addFunds(username, amount):
@@ -18,7 +16,7 @@ def getStockPrice(stockSymbol):
     #this needs to get stock price from quote server
     #will just return dollar value of stock
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect(('quoteserver', config.QuoteServerPort))
+    QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
 
     while True:
         QuoteSocket.send(pickle.dumps(stockSymbol))

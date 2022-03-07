@@ -1,6 +1,5 @@
 import socket
 from yahoo_fin import stock_info as si
-import pymongo
 import time
 import config
 import pickle

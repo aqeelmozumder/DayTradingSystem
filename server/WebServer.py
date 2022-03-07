@@ -1,19 +1,12 @@
 import socket
-import os
-import json
 import pickle
 from _thread import *
-import pymongo
-import time
 import config
 import commands
 
 
-CLIENT = pymongo.MongoClient("mongodb://admin:admin@mongo:27017/seng468?authSource=admin")
-APP_DATABASE = CLIENT["seng468"]
-USER_COLLECTION = APP_DATABASE["config.userCollection"]
 
-# USER_COLLECTION.delete_many({})
+config.USER_COLLECTION.delete_many({})
 
 def main():
     
@@ -46,17 +39,17 @@ def BindWebServer(ServerSocket, WebServerHost, WebServerPort):
 
 
 # Connect To Transaction Servr
-def ConnectToTransactionServer(data):
-    TransactionSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    TransactionSocket.connect((config.TransactionServerHost, config.TransactionServerPort))
+# def ConnectToTransactionServer(data):
+#     TransactionSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+#     TransactionSocket.connect((config.TransactionServerHost, config.TransactionServerPort))
 
-    while True:
-        TransactionSocket.send(data)
-        Response = TransactionSocket.recv(2048)
-        TransactionSocket.close()
-        break
+#     while True:
+#         TransactionSocket.send(data)
+#         Response = TransactionSocket.recv(2048)
+#         TransactionSocket.close()
+#         break
   
-    return Response.decode('utf-8')                            
+#     return Response.decode('utf-8')                            
 
 
 def threaded_client(connection):

@@ -3,7 +3,6 @@ import pickle
 import config
 import transactions
 import commandsHelpers
-import pymongo
 import time
 import db
 
@@ -11,7 +10,7 @@ import db
 # Connect To Quote Server
 def ConnectToQuoteServer(data):
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect(('quoteserver', config.QuoteServerPort))
+    QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
 
     while True:
         QuoteSocket.send(pickle.dumps(data))

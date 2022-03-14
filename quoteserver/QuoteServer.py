@@ -10,8 +10,8 @@ QuoteServerPort = 65438        # QuoteServerPort to listen on (non-privileged po
 
 def GetQuotePrice(data):
     receive_from_web = pickle.loads(data)
-    
-    if len(receive_from_web) > 1:
+    print(receive_from_web)
+    if len(receive_from_web) > 1 and type(receive_from_web) == list:
         stockSymbol = receive_from_web[2]
         quoteprice = round(si.get_live_price(stockSymbol), 2)
         username = receive_from_web[1]
@@ -19,7 +19,7 @@ def GetQuotePrice(data):
         cryptokey = str(uuid.uuid1())
 
         return [quoteprice, stockSymbol, username, timestamp, cryptokey]
-    elif len(receive_from_web) == 1:
+    elif len(receive_from_web) == 1 or type(receive_from_web) == str:
         return round(si.get_live_price(receive_from_web), 2)
     else:
         return "Missing parameters"

@@ -236,7 +236,12 @@ def SetSellAmount(data, transCount):
     username = data[1]
     stockSymbol = data[2]
     stockPrice = commandsHelpers.getStockPrice(stockSymbol)
+    print(stockPrice)
+    if(type(stockPrice) == list):
+        stockPrice = stockPrice[0]
     amount = round(float(data[3]), 2)
+    print("stockprice",stockPrice)
+    print("amount",amount)
     numStocksSellAmount = int(amount/stockPrice)
     #ensure user has stock
     if db.doesUserHaveStock(username, stockSymbol):

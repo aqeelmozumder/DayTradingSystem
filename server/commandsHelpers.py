@@ -17,7 +17,7 @@ def getStockPrice(stockSymbol):
     #will just return dollar value of stock
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
-
+    print(len(stockSymbol))
     while True:
         QuoteSocket.send(pickle.dumps(stockSymbol))
         Response = QuoteSocket.recv(2048)
@@ -38,7 +38,7 @@ def buyStock(buyOrder, username):
     # TODO
     #this may not be where/how we want to do this, but gives a good idea of what to do with the DB
     #need to send to transaction server and get quote from quote server, update user's "stocks" and balance
-    
+    stockSymbol : list
     stockSymbol = buyOrder["stockSymbol"]
     stockPrice = getStockPrice(stockSymbol)
     numberOfStocks = int(buyOrder["buyAmount"] / stockPrice)

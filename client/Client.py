@@ -33,7 +33,7 @@ def ParseAndSend(ClientSocket):
             ClientSocket.send(Data)
             time.sleep(0.1)
             Response = ClientSocket.recv(4096)
-            print(Response.decode('utf-8'))
+            print(RemoveCharacters)
             count = count +1
     #file.close()
     #Response = ClientSocket.recv(2048)

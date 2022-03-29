@@ -2,13 +2,27 @@ version: "3"
 
 services:
 
+  nginx:
+    build:
+      context: ./nginx/
+      dockerfile: Nginx.Dockerfile
+    depends_on:
+      - webserver
+      - webserver2
+      - quoteserver
+    ports:
+      - "5100:5100"
+    restart: always
+
   client:
     container_name: client
     build: ./client
     links:
       - webserver
     depends_on:
+      - nginx
       - webserver
+      - webserver2
       - quoteserver
     volumes:
       - /data/log
@@ -27,9 +41,24 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=admin
     volumes:
       - /data/log
-    
-      
 
+  webserver2:
+    container_name: webserver2
+    build: ./server2
+    links:
+      - mongo
+    ports:
+      - 65433:65433
+    environment:
+      - MONGO_SERVER=mongo
+      - MONGO_INITDB_DATABASE=seng468
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    volumes:
+      - /data/log
+    
+  
+  
   mongo:
     container_name: mongo
     image: mongo

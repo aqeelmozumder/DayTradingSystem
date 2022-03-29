@@ -10,7 +10,7 @@ QuoteServerPort = 65438        # QuoteServerPort to listen on (non-privileged po
 
 def GetQuotePrice(data):
     receive_from_web = pickle.loads(data)
-    print(receive_from_web)
+    # print(receive_from_web)
     if len(receive_from_web) > 1 and type(receive_from_web) == list:
         stockSymbol = receive_from_web[2]
         quoteprice = round(si.get_live_price(stockSymbol), 2)
@@ -32,7 +32,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     while True:
         conn, addr = s.accept()
     
-        print('Connected to: ' + addr[0] + ':' + str(addr[1]))
+        # print('Connected to: ' + addr[0] + ':' + str(addr[1]))
         data = conn.recv(2048)
         response = GetQuotePrice(data)
         if not data:

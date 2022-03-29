@@ -16,5 +16,5 @@ QuoteServerPort = 65438
 WebServerHost = "0.0.0.0"
 # To run local:
 # WebContainerName = '0.0.0.0'
-WebContainerName = 'webserver'
-WebServerPort = 65432
+WebContainerName = 'webserver2'
+WebServerPort = 65433

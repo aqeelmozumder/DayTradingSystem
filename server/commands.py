@@ -3,7 +3,6 @@ import pickle
 import config
 import transactions
 import commandsHelpers
-import pymongo
 import time
 import db
 
@@ -11,7 +10,7 @@ import db
 # Connect To Quote Server
 def ConnectToQuoteServer(data):
     QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect((config.QuoteServerHost, config.QuoteServerPort))
+    QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
 
     while True:
         QuoteSocket.send(pickle.dumps(data))
@@ -237,7 +236,12 @@ def SetSellAmount(data, transCount):
     username = data[1]
     stockSymbol = data[2]
     stockPrice = commandsHelpers.getStockPrice(stockSymbol)
+    # print(stockPrice)
+    if(type(stockPrice) == list):
+        stockPrice = stockPrice[0]
     amount = round(float(data[3]), 2)
+    # print("stockprice",stockPrice)
+    # print("amount",amount)
     numStocksSellAmount = int(amount/stockPrice)
     #ensure user has stock
     if db.doesUserHaveStock(username, stockSymbol):
@@ -381,15 +385,20 @@ def Dumplog(data, transCount):
     f.write("<log>\n")
     #print history of users transactions to the spec'd file
     list_of_name = config.USER_COLLECTION.find({"username":{"$not":{"$eq":"ADMIN"}}},{"username":1,"_id":0})
-    names = list_of_name.next()
+    testname = list(list_of_name)
+    names = []
+    for i in testname:
+        for val in i.values():
+            names.append(val)
+            
     logdata = 0
-    for name in names:
+    for name in range(len(names)):
         if len(names) == 1:
             logdata = config.USER_COLLECTION.find(
                 { "username": names[name] },{"transactions":1, "_id": 0})
         else:
             logdata = config.USER_COLLECTION.find(
-                { "username": name["username"] },{"transactions":1, "_id": 0})
+                { "username": names[name] },{"transactions":1, "_id": 0})
         logdata1 = logdata.next()
 
         for value in logdata1["transactions"]:

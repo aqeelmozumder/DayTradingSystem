@@ -1,8 +1,6 @@
 import config
-import transactions
-import commandsHelpers
-import pymongo
 import time
+
 
 def updateSetBuy(username, stockSymbol, amount):
     config.USER_COLLECTION.update_one(

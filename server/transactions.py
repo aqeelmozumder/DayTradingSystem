@@ -1,6 +1,6 @@
 import config
 import time
-import pymongo
+
 
 def doesUserExist(username):
     return config.USER_COLLECTION.count_documents({ "username": username }) > 0

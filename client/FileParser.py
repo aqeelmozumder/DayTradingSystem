@@ -5,7 +5,7 @@ logcommand = []
 
 def Parser():
 
-    with open("./client/Commands.txt", "r") as file:
+    with open("User1Workload.txt", "r") as file:
             count = 1
             Input : list
             for lines in file:

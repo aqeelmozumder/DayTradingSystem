@@ -8,8 +8,7 @@ services:
       dockerfile: Nginx.Dockerfile
     depends_on:
       - webserver
-      - webserver2
-      - quoteserver
+    # - quoteserver
     ports:
       - "5100:5100"
     restart: always
@@ -22,18 +21,14 @@ services:
     depends_on:
       - nginx
       - webserver
-      - webserver2
-      - quoteserver
+      # - quoteserver
     volumes:
       - /data/log
       
   webserver:
-    container_name: webserver
     build: ./server
     links:
       - mongo
-    ports:
-      - 65432:65432
     environment:
       - MONGO_SERVER=mongo
       - MONGO_INITDB_DATABASE=seng468
@@ -42,27 +37,11 @@ services:
     volumes:
       - /data/log
 
-  webserver2:
-    container_name: webserver2
-    build: ./server2
-    links:
-      - mongo
-    ports:
-      - 65433:65433
-    environment:
-      - MONGO_SERVER=mongo
-      - MONGO_INITDB_DATABASE=seng468
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-    volumes:
-      - /data/log
-    
-  
   
   mongo:
     container_name: mongo
     image: mongo
-    command: mongod --auth --port 27017
+    command: mongod --quiet --auth --port 27017
     ports:
       - 27017:27017
     environment:
@@ -72,11 +51,12 @@ services:
     volumes:
       - /data/db
 
-  quoteserver:
-    container_name: quoteserver
-    build: ./quoteserver
-    ports:
-      - 65438:65438
+  # quoteserver:
+  #   container_name: quoteserver
+  #   build: ./quoteserver
+  #   ports:
+  #     - 65438:65438
+
     
   
 

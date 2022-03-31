@@ -1,7 +1,10 @@
 import socket
 import config
 import pickle
+import time
 import db
+import uuid
+from yahoo_fin import stock_info as si
 
 def addFunds(username, amount):
     #increment user's balance by amount
@@ -15,17 +18,30 @@ def userBalance(username):
 def getStockPrice(stockSymbol):
     #this needs to get stock price from quote server
     #will just return dollar value of stock
-    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
-    # print(len(stockSymbol))
-    while True:
-        QuoteSocket.send(pickle.dumps(stockSymbol))
-        Response = QuoteSocket.recv(2048)
-        QuoteSocket.close()
-        if Response:
-            break
+
+    receive_from_web = stockSymbol
+
+    if len(receive_from_web) > 1 and type(receive_from_web) == list:
+        stockSymbol = receive_from_web[2]
+        try:
+            quoteprice = round(si.get_live_price(stockSymbol), 2)
+        except:
+            quoteprice = 0
+        username = receive_from_web[1]
+        timestamp = time.time() * 1000
+        cryptokey = str(uuid.uuid1())
+
+        return [quoteprice, stockSymbol, username, timestamp, cryptokey]
+    elif len(receive_from_web) == 1 or type(receive_from_web) == str:
+        try:
+            result = round(si.get_live_price(receive_from_web), 2)
+            return result
+        except:
+            return 0
+        
+    else:
+        return "Missing parameters"
   
-    return pickle.loads(Response)
 
 def insertBuyOrder(data):
     username = data[1]

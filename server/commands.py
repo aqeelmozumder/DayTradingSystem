@@ -5,21 +5,28 @@ import transactions
 import commandsHelpers
 import time
 import db
+import uuid
+from yahoo_fin import stock_info as si
 
 
 # Connect To Quote Server
 def ConnectToQuoteServer(data):
-    QuoteSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-    QuoteSocket.connect((config.QuoteContainerName, config.QuoteServerPort))
 
-    while True:
-        QuoteSocket.send(pickle.dumps(data))
-        Response = QuoteSocket.recv(2048)
-        QuoteSocket.close()
-        if Response:
-            break
-  
-    return pickle.loads(Response)   
+    receive_from_web = data
+
+    if len(receive_from_web) > 1 and type(receive_from_web) == list:
+        stockSymbol = receive_from_web[2]
+        quoteprice = round(si.get_live_price(stockSymbol), 2)
+        username = receive_from_web[1]
+        timestamp = time.time() * 1000
+        cryptokey = str(uuid.uuid1())
+
+        return [quoteprice, stockSymbol, username, timestamp, cryptokey]
+    elif len(receive_from_web) == 1 or type(receive_from_web) == str:
+        return round(si.get_live_price(receive_from_web), 2)
+    else:
+        return "Missing parameters"
+ 
 
 def Add(data, transCount):
     #user, amount
@@ -379,6 +386,7 @@ def Dumplog(data, transCount):
     #print to the spec'd file the complete set of transactions that have occured in system
     #can only be executed from the supervisor/root/admin account
     transactions.insertFilenameTransaction(data, transCount)
+    print("Succesfull here")
     filename = data[1]
     f = open(filename, "w")
     f.write('<?xml version="1.0"?>\n')
@@ -430,6 +438,7 @@ def Dumplog(data, transCount):
                 f.write("   </"+str(value["type"])+">\n")
     f.write("</log>")
     f.close()
+    print("done: ", f)
     # set up dumplog of all transactions
     # when we add admin users, only they can complete this transaction
     return

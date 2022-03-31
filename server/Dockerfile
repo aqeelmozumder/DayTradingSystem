@@ -4,7 +4,9 @@ FROM python:latest
 
 ADD db.py /server/
 
+RUN pip3 install yahoo_fin
 RUN pip3 install pymongo
+
 RUN pip3 install numpy
 
 EXPOSE 65432

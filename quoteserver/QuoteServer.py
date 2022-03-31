@@ -1,41 +1,50 @@
 import socket
-from yahoo_fin import stock_info as si
-import time
-import config
 import pickle
-import uuid
+from _thread import *
+from threading import *
+import config
 
-QuoteServerHost = "127.0.0.1"  # Standard loopback interface address (localhost)
-QuoteServerPort = 65438        # QuoteServerPort to listen on (non-privileged ports are > 1023)
 
-def GetQuotePrice(data):
-    receive_from_web = pickle.loads(data)
-    # print(receive_from_web)
-    if len(receive_from_web) > 1 and type(receive_from_web) == list:
-        stockSymbol = receive_from_web[2]
-        quoteprice = round(si.get_live_price(stockSymbol), 2)
-        username = receive_from_web[1]
-        timestamp = time.time() * 1000
-        cryptokey = str(uuid.uuid1())
 
-        return [quoteprice, stockSymbol, username, timestamp, cryptokey]
-    elif len(receive_from_web) == 1 or type(receive_from_web) == str:
-        return round(si.get_live_price(receive_from_web), 2)
-    else:
-        return "Missing parameters"
+def main():
+    # ThreadCount = 0
+    #Init ClientSocket, WebServer host and port that the client will use to connect
+    ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((config.QuoteServerHost, config.QuoteServerPort))
-    s.listen()
-    print('listening on', (config.QuoteServerHost, config.QuoteServerPort))
+    #Bind the webserver
+    BindWebServer(ServerSocket, config.QuoteServerHost, config.QuoteServerPort)
+
+    ServerSocket.close()
+
+#Bind and Start Listening
+def BindWebServer(ServerSocket, QuoteServerHost, QuoteServerPort):
+    
+    try:
+        ServerSocket.bind((QuoteServerHost, QuoteServerPort))
+    except socket.error as e:
+        print(str(e))
+        
+    print('Waitiing for a Connection..')
+    ServerSocket.listen(5)
+    print('listening on', (QuoteServerHost, QuoteServerPort))
     
     while True:
-        conn, addr = s.accept()
-    
-        # print('Connected to: ' + addr[0] + ':' + str(addr[1]))
-        data = conn.recv(2048)
-        response = GetQuotePrice(data)
-        if not data:
-            print("No Data Received")
-            break
-        conn.sendall(pickle.dumps(response))
+        Client, address = ServerSocket.accept()
+        print('Connected to: ' + address[0] + ':' + str(address[1]))
+        #Create a Thread for the Client/Connection
+        start_new_thread(threaded_client, (Client, ))
+
+def threaded_client(connection):
+    WebSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    WebSocket.connect((config.WebContainerName, config.WebServerPort))
+    # # print(len(stockSymbol))
+    while True:
+        data = connection.recv(1024)
+        data = pickle.loads(data)
+        newdata = pickle.dumps(data)
+        WebSocket.send(newdata)
+    #     Response = QuoteSocket.recv(2048)
+    #     QuoteSocket.close()
+
+
+main()

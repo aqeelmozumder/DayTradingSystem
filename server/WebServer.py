@@ -1,9 +1,10 @@
 import socket
 import pickle
-from multiprocessing import Process
 import config
 import commands
-import time
+import ssl
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 
 config.USER_COLLECTION.delete_many({})
@@ -65,17 +66,19 @@ def threaded_client(data):
         Reply = commands.CancelSetSell(RequestData_from_Client, transCount)  
                      
     elif command == 'DUMPLOG':
-        print("HELLO")
         if len(RequestData_from_Client) == 2:
             commands.Dumplog(RequestData_from_Client, transCount)      
-                       
+            print("Testlog Should be Generated in this Server")        
         else:
             commands.DumplogUser(RequestData_from_Client, transCount) 
+            print("Testlog Should be Generated in this Server") 
                             
     elif command == 'DISPLAY_SUMMARY':
         commands.DisplaySummary(RequestData_from_Client, transCount)
         
     return Reply
+
+
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as ServerSocket:
@@ -87,14 +90,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as ServerSocket:
     print('Waitiing for a Connection..')
     ServerSocket.listen(5)
     print('listening on', (config.WebServerHost, config.WebServerPort))
-    # transCount = 1
+
     while True:
 
         Client, address = ServerSocket.accept()
+        secureClientSocket = ssl.wrap_socket(Client,server_side=True, certfile="./server/host.cert", keyfile="./server/host.key",ssl_version=ssl.PROTOCOL_TLS_SERVER);
+
         print('Connected to: ' + address[0] + ':' + str(address[1]))
 
-        data = Client.recv(1024)
+        data = secureClientSocket.recv(1024)
         Reply = threaded_client(data)
-        # transCount +=1
-        Client.sendall(str.encode(Reply))
-
+        
+        secureClientSocket.sendall(str.encode(Reply))

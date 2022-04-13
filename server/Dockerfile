@@ -16,5 +16,7 @@ ADD config.py /server/
 ADD commands.py /server/
 ADD commandsHelpers.py /server/
 ADD transactions.py /server/
+ADD host.cert /server/
+ADD host.key /server/
 
 CMD [ "python3", "./server/WebServer.py" ]

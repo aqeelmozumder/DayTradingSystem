@@ -26,28 +26,96 @@ services:
   webserver:
     build: ./server
     links:
-      - mongo
+      - mongos
     environment:
-      - MONGO_SERVER=mongo
+      - MONGO_SERVER=mongos
       - MONGO_INITDB_DATABASE=seng468
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=admin
     volumes:
       - /data/log
 
-  mongo:
-    container_name: mongo
+  config1:
+    container_name: config1
     image: mongo
-    command: mongod --quiet --auth --port 27017
-    ports:
-      - 27017:27017
-    environment:
-      - MONGO_INITDB_DATABASE=seng468
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
+    command: mongod --configsvr --replSet configserver --port 27017
     volumes:
-      - /data/db
+      - ./scripts:/data/db
 
+  config2:
+    container_name: config2
+    image: mongo
+    command: mongod --configsvr --replSet configserver --port 27017
+    volumes:
+      - ./scripts:/data/db
+
+  config3:
+    container_name: config3
+    image: mongo
+    command: mongod --configsvr --replSet configserver --port 27017
+    volumes:
+      - ./scripts:/data/db
+    
+  shard1_1:
+    container_name: shard1_1
+    image: mongo
+    command: mongod --shardsvr --replSet shard1 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  shard1_2:
+    container_name: shard1_2
+    image: mongo
+    command: mongod --shardsvr --replSet shard1 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  shard1_3:
+    container_name: shard1_3
+    image: mongo
+    command: mongod --shardsvr --replSet shard1 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  shard2_1:
+    container_name: shard2_1
+    image: mongo
+    command: mongod --shardsvr --replSet shard2 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  shard2_2:
+    container_name: shard2_2
+    image: mongo
+    command: mongod --shardsvr --replSet shard2 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  shard2_3:
+    container_name: shard2_3
+    image: mongo
+    command: mongod --shardsvr --replSet shard2 --port 27017 --dbpath /data/db
+    volumes:
+      - ./scripts:/data
+
+  mongos:
+    container_name: mongos
+    image: mongo
+    command: mongos --configdb configserver/config1:27017,config2:27017,config3:27017 --port 27017 --bind_ip_all
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./scripts:/data/db
+    depends_on:
+      - config1
+      - config2
+      - config3
+      - shard1_1
+      - shard1_2
+      - shard1_3
+      - shard2_1
+      - shard2_2
+      - shard2_3
 
     
   
